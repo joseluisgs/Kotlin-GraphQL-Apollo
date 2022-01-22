@@ -1,13 +1,15 @@
 package rocket
 
+import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.exception.ApolloException
 import com.google.gson.GsonBuilder
 import graphql.com.models.LaunchDetailsQuery
 import graphql.com.models.LaunchListQuery
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.runBlocking
-import rocket.Rocket.getLaunchList
 import rocket.graphql.RocketClient
 
 
@@ -28,8 +30,22 @@ object Rocket {
         launchList.await()
         launchById.await()
 
+        // Como flujo
+        val flowAll = getLaunchListFlow()
+            .collect {
+                it.data?.launches?.launches
+                    ?.filter { item -> item?.site?.contains("C") ?: false }
+                    ?.take(3)
+                    ?.forEach { item ->
+                        println(item.toJson())
+                    }
+            }
+
     }
 
+    /**
+     * Obtiene la lista de lanzamientos
+     */
     private suspend fun getLaunchList() {
         println("Query -> LaunchList")
         try {
@@ -38,7 +54,7 @@ object Rocket {
             if (response.data != null && !response.hasErrors()) {
                 println("Total Launches: ${response.data?.launches?.launches?.size}")
                 response.data?.launches?.launches?.forEach {
-                    println("Launch: $it")
+                    println("Launch: ${it.toJson()}")
                 }
             } else {
                 println("Error: ${response.errors}")
@@ -48,12 +64,25 @@ object Rocket {
         }
     }
 
+    /**
+     * Obtiene la lista de lanzamientos como flujo
+     * @return Flow<Launch> -> flujo de lanzamientos
+     */
+    private fun getLaunchListFlow(): Flow<ApolloResponse<LaunchListQuery.Data>> {
+        println("Query -> LaunchList as Flow")
+        return graphQLClient.query(LaunchListQuery()).toFlow().flowOn(Dispatchers.IO)
+    }
+
+    /**
+     * Obtiene un lanzamiento por id
+     * @param id id del lanzamiento
+     */
     private suspend fun getLaunchById(id: String = "1") {
         println("Query -> LaunchListDetails")
         val response = graphQLClient.query(LaunchDetailsQuery(id)).execute()
         try {
             if (response.data != null && !response.hasErrors()) {
-                println(response.data)
+                println(response.data?.launch.toJson())
             } else {
                 println("Error: ${response.errors}")
             }
@@ -61,4 +90,10 @@ object Rocket {
             println("Error: ${e.message}")
         }
     }
+
+    // Me creo funciones de extensión para poder usar el Gson. Lo ideal sería mapear el modelo, usando los resultados para
+    private fun LaunchListQuery.Launch?.toJson() = GsonBuilder().setPrettyPrinting().create().toJson(this)
+    private fun LaunchDetailsQuery.Launch?.toJson() = GsonBuilder().setPrettyPrinting().create().toJson(this)
 }
+
+
