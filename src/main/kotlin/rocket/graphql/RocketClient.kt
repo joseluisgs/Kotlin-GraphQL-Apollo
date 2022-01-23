@@ -9,7 +9,6 @@ import okhttp3.Response
 object RocketClient {
     private val API_URL = "https://apollo-fullstack-tutorial.herokuapp.com/graphql"
 
-
     // Creamos una instancia de Apollo
     fun getInstance(token: String? = null): ApolloClient {
 
@@ -18,6 +17,7 @@ object RocketClient {
             .addInterceptor(AuthorizationInterceptor(token))
             .build()
 
+        // Devolvemos el cliente Apollo
         return ApolloClient.Builder()
             .serverUrl(API_URL)
             .okHttpClient(okHttpClient)
@@ -31,6 +31,7 @@ object RocketClient {
 private class AuthorizationInterceptor(val token: String?) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request().newBuilder()
+            //addHeader("Authorization", "Bearer $token") --> Si es del tipo Bearer Token
             .addHeader("Authorization", token ?: "")
             .build()
 

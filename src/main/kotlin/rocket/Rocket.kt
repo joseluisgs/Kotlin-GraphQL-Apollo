@@ -4,9 +4,7 @@ import com.apollographql.apollo3.api.ApolloResponse
 import com.apollographql.apollo3.api.Optional
 import com.apollographql.apollo3.exception.ApolloException
 import com.google.gson.GsonBuilder
-import graphql.com.models.LaunchDetailsQuery
-import graphql.com.models.LaunchListQuery
-import graphql.com.models.LoginMutation
+import graphql.com.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +12,12 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.runBlocking
 import rocket.graphql.RocketClient
 
+/**
+ * Lo ideal en este ejemplo no sería imprimir las cosas en los métodos, pero eso es solo para mostrar como funcionaria
+ * Deberíamos usar asyn/await para obtener los resultados de la consulta de la API GraphQL y luego con ellos mostrarlos o
+ * procesarlos según sea el caso.
+ * Pero es un ejemplo de uso, no lo olvides.
+ */
 
 object Rocket {
     val graphQLClient = RocketClient.getInstance()
@@ -31,7 +35,9 @@ object Rocket {
         val launchById = async(Dispatchers.IO) { getLaunchById("3") }
         // Para imprimirlos en orden
         launchList.await()
-        launchById.await()
+        // Las asyn/await se usa realmente cuando queremos obtener valores deuna función asíncrona, por eso difire del lucch, el cual no devolvería nada
+        // usando corrutinas: https://www.geeksforgeeks.org/launch-vs-async-in-kotlin-coroutines/
+        val launch = launchById.await()
 
         // Como flujo
         val flowAll = getLaunchListFlow()
@@ -46,13 +52,21 @@ object Rocket {
 
         // Login
         val login = async(Dispatchers.IO) { login("pepe@miamil.es") }
-        // Las asyn/await se usa realmente cuando queremos obtener valores deuna función asíncrona, por eso difire del lucch, el cual no devolvería nada
-        // usando corrutinas: https://www.geeksforgeeks.org/launch-vs-async-in-kotlin-coroutines/
         TOKEN = login.await().toString()
         if (TOKEN.isNotEmpty()) {
             println("Login correcto con token: $TOKEN")
         } else {
             println("Login incorrecto")
+        }
+
+        println("Luanch: $launch")
+        // Cancelar y anular lanzamientos
+        if (launch?.isBooked == true) {
+            println("El lanzamiento ${launch.id} con misión a ${launch.mission?.name} está confirmado y lo anularemos")
+            async(Dispatchers.IO) { cancelLaunch(launch.id) }
+        } else {
+            println("El lanzamiento ${launch?.id} con misión a ${launch?.mission?.name} no esta confirmado y lo confirmaremos")
+            async(Dispatchers.IO) { bookLaunch(launch!!.id) }
         }
 
     }
@@ -92,18 +106,20 @@ object Rocket {
      * Obtiene un lanzamiento por id
      * @param id id del lanzamiento
      */
-    private suspend fun getLaunchById(id: String = "1") {
+    private suspend fun getLaunchById(id: String = "1"): LaunchDetailsQuery.Launch? {
         println("Query -> LaunchListDetails")
         val response = graphQLClient.query(LaunchDetailsQuery(id)).execute()
         try {
             if (response.data != null && !response.hasErrors()) {
                 println(response.data?.launch.toJson())
+                return response.data?.launch
             } else {
                 println("Error: ${response.errors}")
             }
         } catch (e: ApolloException) {
             println("Error: ${e.message}")
         }
+        return null
     }
 
     private suspend fun login(email: String): String? {
@@ -121,13 +137,49 @@ object Rocket {
         }
         return null
     }
+
+    /**
+     * Cancela un lanzamiento en base a su mutacion con token, pues requiere estar autenticado
+     */
+    private suspend fun cancelLaunch(id: String) {
+        println("Mutation -> Cancel Launch with Token")
+        // Necesitamos una instancia con el token
+        val graphQLClient = RocketClient.getInstance(this.TOKEN)
+        val response = graphQLClient.mutation(CancelTripMutation(id)).execute()
+        try {
+            if (response.data != null && !response.hasErrors()) {
+                println(response.data?.cancelTrip.toJson())
+            } else {
+                println("Error: ${response.errors}")
+            }
+        } catch (e: ApolloException) {
+            println("Error: ${e.message}")
+        }
+    }
+
+    /**
+     * Confirma un lanzamiento en base a su mutacion, pues requiere estar autenticado
+     */
+    private suspend fun bookLaunch(id: String) {
+        println("Mutation -> Book Launch with Token")
+        // Necesitamos una instancia con el token
+        val graphQLClient = RocketClient.getInstance(this.TOKEN)
+        val response = graphQLClient.mutation(BookTripMutation(id)).execute()
+        try {
+            if (response.data != null && !response.hasErrors()) {
+                println(response.data?.bookTrips.toJson())
+            } else {
+                println("Error: ${response.errors}")
+            }
+        } catch (e: ApolloException) {
+            println("Error: ${e.message}")
+        }
+    }
 }
 
 // Me creo funciones de extensión para poder usar el Gson. Lo ideal sería mapear el modelo, usando los resultados para
-private fun LaunchListQuery.Launch?.toJson() = GsonBuilder().setPrettyPrinting().create().toJson(this)
-private fun LaunchDetailsQuery.Launch?.toJson() = GsonBuilder().setPrettyPrinting().create().toJson(this)
-private fun List<LaunchListQuery.Launch?>.toJson() = GsonBuilder().setPrettyPrinting().create().toJson(this)
-private fun LoginMutation.Login?.toJson() = GsonBuilder().setPrettyPrinting().create().toJson(this)
+private fun Any?.toJson() = GsonBuilder().setPrettyPrinting().create().toJson(this)
+
 
 
 
