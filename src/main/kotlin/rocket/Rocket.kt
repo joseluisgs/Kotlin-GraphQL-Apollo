@@ -59,7 +59,7 @@ object Rocket {
             println("Login incorrecto")
         }
 
-        println("Luanch: $launch")
+        // println("Luanch: $launch")
         // Cancelar y anular lanzamientos
         if (launch?.isBooked == true) {
             println("El lanzamiento ${launch.id} con misión a ${launch.mission?.name} está confirmado y lo anularemos")

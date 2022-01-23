@@ -9,6 +9,20 @@ Sencillo cliente para consumir una API GraphQL con Apollo usando Kotlin. Para el
 ![imagen](https://www.adesso-mobile.de/wp-content/uploads/2021/02/kotlin-einfu%CC%88hrung.jpg)
 
 
+## API GraphQL
+GraphQL es un lenguaje de consulta para APIs. En lugar de enviar múltiples peticiones independientes (por ejemplo, una para la lista de usuarios, otra para sus roles, otra para su empresa), GraphQL permite a los clientes hacer una sola petición, y obtener la respuesta con todos los campos que necesitan.
+
+Minimiza la cantidad de datos que deben transferirse a través de la red y, por lo tanto, mejora considerablemente las aplicaciones que operan en circunstancias por ejemplo en donde la red no sea eficiente o el dispositivo sea de baja potencia.
+
+En GraphQL se define una estructura de datos para representar una API. El dominio de GraphQL son los datos. Se puede utilizar para diseñar un esquema que represente los datos y tiparlos.
+
+Los elementos fundamentales de una API GraphQL, son:
+
+- [Esquema](./src/main/graphql/rocket/rocket.graphqls): Es una representación de los datos donde se pueden fijar su tipo y relaciones. Así como el tipo de dato que se espera obtener y las operaciones que se pueden realizar sobre ellos.
+- Query: Definen las consultas que se pueden realizar sobre los datos, [sin parámetros](./src/main/graphql/rocket/LaunchDetails.graphql) o c[on parámetros](./src/main/graphql/rocket/LaunchDetails.graphql).
+- Mutation: Definen las mutaciones que se pueden realizar sobre los datos. Es decir, cambios sobre los mismos: [insercciones](./src/main/graphql/rocket/Login.graphql), [actualizaciones](./src/main/graphql/rocket/BookTrip.graphql), o [borrados](./src/main/graphql/rocket/CancelTrip.graphql).
+- Subscriptions: Las [suscripciones](./src/main/graphql/rocket/TripsBooked.graphql) son útiles para notificar a su cliente en tiempo real sobre cambios en los datos de back-end, como la creación de un nuevo objeto o actualizaciones de un campo importante.
+
 ## Autor
 
 Codificado con :sparkling_heart: por [José Luis González Sánchez](https://twitter.com/joseluisgonsan)
